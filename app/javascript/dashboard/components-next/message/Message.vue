@@ -39,6 +39,7 @@ import DyteBubble from './bubbles/Dyte.vue';
 import LocationBubble from './bubbles/Location.vue';
 import CSATBubble from './bubbles/CSAT.vue';
 import FormBubble from './bubbles/Form.vue';
+import CardsBubble from './bubbles/Cards.vue';
 import VoiceCallBubble from './bubbles/VoiceCall.vue';
 
 import MessageError from './MessageError.vue';
@@ -306,6 +307,10 @@ const componentToRender = computed(() => {
     return EmailBubble;
   }
 
+  if (props.contentType === CONTENT_TYPES.CARDS) {
+    return CardsBubble;
+  }
+
   if (props.contentAttributes?.isUnsupported) {
     return UnsupportedBubble;
   }
@@ -395,6 +400,7 @@ const shouldRenderMessage = computed(() => {
   const isUnsupported = props.contentAttributes?.isUnsupported;
   const isAnIntegrationMessage =
     props.contentType === CONTENT_TYPES.INTEGRATIONS;
+  const isCards = props.contentType === CONTENT_TYPES.CARDS;
   const isFailedMessage = props.status === MESSAGE_STATUS.FAILED;
   const hasExternalError = !!props.contentAttributes?.externalError;
 
@@ -404,6 +410,7 @@ const shouldRenderMessage = computed(() => {
     isEmailContentType ||
     isUnsupported ||
     isAnIntegrationMessage ||
+    isCards ||
     isFailedMessage ||
     hasExternalError
   );
@@ -515,80 +522,50 @@ provideMessageContext({
 
 <!-- eslint-disable-next-line vue/no-root-v-if -->
 <template>
-  <div
-    v-if="shouldRenderMessage"
-    :id="`message${props.id}`"
-    class="flex w-full mb-2 message-bubble-container"
-    :data-message-id="props.id"
-    :class="[
+  <div v-if="shouldRenderMessage" :id="`message${props.id}`" class="flex w-full mb-2 message-bubble-container"
+    :data-message-id="props.id" :class="[
       flexOrientationClass,
       {
         'group-with-next': shouldGroupWithNext,
         'bg-n-alpha-1': showBackgroundHighlight,
       },
-    ]"
-  >
+    ]">
     <div v-if="variant === MESSAGE_VARIANTS.ACTIVITY">
       <ActivityBubble :content="content" />
     </div>
-    <div
-      v-else
-      :class="[
-        gridClass,
-        {
-          'gap-y-2': contentAttributes.externalError,
-          'w-full': variant === MESSAGE_VARIANTS.EMAIL,
-        },
-      ]"
-      class="gap-x-2"
-      :style="{
-        gridTemplateAreas: gridTemplate,
-      }"
-    >
-      <div
-        v-if="!shouldGroupWithNext && shouldShowAvatar"
-        v-tooltip.left-end="avatarTooltip"
-        class="[grid-area:avatar] flex items-end"
-      >
+    <div v-else :class="[
+      gridClass,
+      {
+        'gap-y-2': contentAttributes.externalError,
+        'w-full': variant === MESSAGE_VARIANTS.EMAIL,
+      },
+    ]" class="gap-x-2" :style="{
+      gridTemplateAreas: gridTemplate,
+    }">
+      <div v-if="!shouldGroupWithNext && shouldShowAvatar" v-tooltip.left-end="avatarTooltip"
+        class="[grid-area:avatar] flex items-end">
         <Avatar v-bind="avatarInfo" :size="24" />
       </div>
-      <div
-        class="[grid-area:bubble] flex"
-        :class="{
-          'ltr:ml-8 rtl:mr-8 justify-end': orientation === ORIENTATION.RIGHT,
-          'ltr:mr-8 rtl:ml-8': orientation === ORIENTATION.LEFT,
-          'min-w-0': variant === MESSAGE_VARIANTS.EMAIL,
-        }"
-        @contextmenu="openContextMenu($event)"
-      >
+      <div class="[grid-area:bubble] flex" :class="{
+        'ltr:ml-8 rtl:mr-8 justify-end': orientation === ORIENTATION.RIGHT,
+        'ltr:mr-8 rtl:ml-8': orientation === ORIENTATION.LEFT,
+        'min-w-0': variant === MESSAGE_VARIANTS.EMAIL,
+      }" @contextmenu="openContextMenu($event)">
         <Component :is="componentToRender" />
       </div>
-      <MessageError
-        v-if="contentAttributes.externalError"
-        class="[grid-area:meta]"
-        :class="flexOrientationClass"
-        :error="contentAttributes.externalError"
-        @retry="emit('retry')"
-      />
+      <MessageError v-if="contentAttributes.externalError" class="[grid-area:meta]" :class="flexOrientationClass"
+        :error="contentAttributes.externalError" @retry="emit('retry')" />
     </div>
     <div v-if="shouldShowContextMenu" class="context-menu-wrap">
-      <ContextMenu
-        v-if="isBubble"
-        :context-menu-position="contextMenuPosition"
-        :is-open="showContextMenu"
-        :enabled-options="contextMenuEnabledOptions"
-        :message="payloadForContextMenu"
-        hide-button
-        @open="openContextMenu"
-        @close="closeContextMenu"
-        @reply-to="handleReplyTo"
-      />
+      <ContextMenu v-if="isBubble" :context-menu-position="contextMenuPosition" :is-open="showContextMenu"
+        :enabled-options="contextMenuEnabledOptions" :message="payloadForContextMenu" hide-button
+        @open="openContextMenu" @close="closeContextMenu" @reply-to="handleReplyTo" />
     </div>
   </div>
 </template>
 
 <style lang="scss">
-.group-with-next + .message-bubble-container {
+.group-with-next+.message-bubble-container {
   .left-bubble {
     @apply ltr:rounded-tl-sm rtl:rounded-tr-sm;
   }
